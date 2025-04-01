@@ -1,0 +1,88 @@
+pipeline {
+    agent {
+        label "devops"
+    }
+    tools {
+        jdk 'jdk'
+        nodejs 'nodejs'
+    }
+    environment  {
+        SCANNER_HOME=tool 'sonar-scanner'
+    }
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git branch: "backend", url: "https://github.com/tarunp2912/finalrelease.git"
+            }
+        }
+        stage('Sonarqube Analysis') {
+            steps {
+                dir('src/') {
+                    withSonarQubeEnv('sonar-scanner') {
+                        sh ''' $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=backend-finalrelease \
+                        -Dsonar.projectKey=backend-finalrelease '''
+                    }
+                }
+            }
+        }
+        stage('Quality Check') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                }
+            }
+        }
+        // stage('OWASP Dependency-Check Scan') {
+        //     steps {
+        //         dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+        //         dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        //         }
+        //     }
+        stage('Trivy File Scan') {
+            steps {
+                sh 'trivy fs . > trivyfs.txt'
+            }
+        }
+        stage("Docker Image Build") {
+            steps {
+                script {
+                    sh 'docker build -t backendtask .'
+                }
+            }
+        }
+        stage("DockerHub Push") {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {
+                    sh "docker tag backendtask ${env.docker_user}/backendtask:${BUILD_NUMBER}"
+                    sh "docker login -u ${env.docker_user} -p ${env.docker_pass}"
+                    sh "docker push ${env.docker_user}/backendtask:${BUILD_NUMBER}"
+                    sh "docker image rm -f ${env.docker_user}/backendtask:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+        // stage("TRIVY Image Scan") {
+        //     steps {
+        //         sh 'trivy image ${env.docker_user}/backendtask:${BUILD_NUMBER} > trivyimage.txt' 
+        //     }
+        // }
+
+        stage("Docker release Deploy"){
+            steps{
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {
+                        sh "docker login -u ${env.docker_user} -p ${env.docker_pass}"
+                        sh "docker run -dit --name backendrelease -p 3500:3500 ${env.docker_user}/backendtask:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+    }    
+}
