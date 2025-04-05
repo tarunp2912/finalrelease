@@ -3,7 +3,7 @@ pipeline {
       label "devops"
     }
     tools {
-        jdk 'jdk'
+        jdk 'Java21'
         nodejs 'nodejs'
     }
     environment  {
