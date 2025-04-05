@@ -2,10 +2,10 @@ pipeline {
     agent {
         label "devops"
     }
-    tools {
-        jdk 'jdk'
-        nodejs 'nodejs'
-    }
+    // tools {
+    //     jdk 'jdk'
+    //     nodejs 'nodejs'
+    // }
     environment  {
         SCANNER_HOME=tool 'sonar-scanner'
     }
