@@ -63,25 +63,25 @@ pipeline {
                 }
             }
         }
-        // stage("TRIVY Image Scan") {
-        //     steps {
-        //         script {
-        //            withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {  
-        //               sh "trivy image ${env.docker_user}/frontendtask:${BUILD_NUMBER} > trivyimage.txt"
-        //            }  
-        //         }   
-        //     }
-        // }
-
-        stage("Docker release Deploy"){
-            steps{
+        stage("TRIVY Image Scan") {
+            steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {
-                        sh "docker login -u ${env.docker_user} -p ${env.docker_pass}"
-                        sh "docker run -dit --name frontendrelease -p 80:3000 ${env.docker_user}/frontendtask:${BUILD_NUMBER}"
-                    }
-                }
+                   withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {  
+                      sh "trivy image ${env.docker_user}/frontendtask:${BUILD_NUMBER} > trivyimage.txt"
+                   }  
+                }   
             }
         }
+
+        // stage("Docker release Deploy"){
+        //     steps{
+        //         script {
+        //             withCredentials([usernamePassword(credentialsId: 'dockerhubid', usernameVariable: 'docker_user', passwordVariable: 'docker_pass')]) {
+        //                 sh "docker login -u ${env.docker_user} -p ${env.docker_pass}"
+        //                 sh "docker run -dit --name frontendrelease -p 80:3000 ${env.docker_user}/frontendtask:${BUILD_NUMBER}"
+        //             }
+        //         }
+        //     }
+        // }
     }    
 }
